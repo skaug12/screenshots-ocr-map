@@ -84,36 +84,41 @@ function loadPins() {
       if (!jsonStr) throw new Error('Invalid response');
 
       const data = JSON.parse(jsonStr[1]);
-      const cols = data.table.cols.map(c => c.label);
       const rows = data.table.rows;
+      // Column order: 날짜(0), 제목(1), 카테고리(2), 설명(3), 장소(4), 위도(5), 경도(6), 이미지(7)
+      // First row is header — skip it
+      const dataRows = rows.slice(1);
 
       let count = 0;
       const bounds = new google.maps.LatLngBounds();
 
-      rows.forEach(row => {
-        const obj = {};
-        cols.forEach((col, i) => {
-          obj[col] = row.c[i] ? (row.c[i].v || '') : '';
-        });
+      dataRows.forEach(row => {
+        const v = (i) => row.c[i] ? (row.c[i].v || '') : '';
 
-        const lat = parseFloat(obj['위도']);
-        const lng = parseFloat(obj['경도']);
+        const lat = parseFloat(v(5));
+        const lng = parseFloat(v(6));
         if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
+
+        const title = v(1);
+        const category = v(2);
+        const description = v(3);
+        const location = v(4);
+        const date = v(0);
 
         const position = { lat, lng };
         const marker = new google.maps.Marker({
           position,
           map,
-          icon: createMarkerIcon(obj['카테고리']),
-          title: obj['제목'] || obj['장소'] || '',
+          icon: createMarkerIcon(category),
+          title: title || location || '',
         });
 
         const content = `
           <div style="min-width:180px;max-width:280px;">
-            <div class="popup-title">${obj['제목'] || obj['장소'] || ''}</div>
-            <div class="popup-desc">${obj['설명'] || ''}</div>
-            <div class="popup-meta">${obj['날짜'] || ''} · ${obj['장소'] || ''}</div>
-            <span class="popup-category">${obj['카테고리'] || ''}</span>
+            <div class="popup-title">${title || location || ''}</div>
+            <div class="popup-desc">${description || ''}</div>
+            <div class="popup-meta">${date || ''} · ${location || ''}</div>
+            <span class="popup-category">${category || ''}</span>
           </div>
         `;
 
